@@ -1,0 +1,22 @@
+.hidden {
+    display: none;
+}
+.container {
+    max-width: 800px;
+    margin: auto;
+    text-align: center;
+}
+.letter {
+    font-size: 3em;
+    margin: 20px;
+}
+.feedback {
+    color: red;
+    margin: 10px;
+}
+input {
+    margin-top: 10px;
+}
+button {
+    margin-top: 10px;
+}
