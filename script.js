@@ -1,215 +1,140 @@
-const levels = [
-    "FJDKSLANGH", // Nivel 1
-    "RUEIWOPQTY", // Nivel 2
-    "VNCMXZB"     // Nivel 3
-];
+const levels = {
+    1: ['A', 'S', 'D', 'F', 'J', 'K', 'L', 'Ñ'],  // Nivel 1: Línea base
+    2: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],  // Nivel 2: Fila superior
+    3: ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.'],  // Nivel 3: Fila inferior
+    4: ['A', 'S', 'D', 'F', 'J', 'K', 'L', 'Ñ', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.']
+    // Puedes agregar más niveles aquí, por ejemplo, nivel 3, nivel 4, etc.
+};
 
-const words = [
-    "hola", "mundo", "escribir", "teclado", "practicar", "juego"
-];
-
-let currentLevel = 0;
+let currentLevel = 1; // Nivel actual
+let letterQueue = [];
 let currentLetter = '';
-let intervalID;
-let letterCount = 0;
-let requiredPresses = 3; // Número de presiones requeridas por letra
-let letterPressCount = {}; // Contador de presiones de letras
-let errorTimeout;
-let currentWord = '';
-let wordIndex = 0;
-let startTime;
-let endTime;
-let gameActive = true;
 
-const letterElement = document.getElementById('letter');
-const feedbackElement = document.getElementById('feedback');
-const levelNumberElement = document.getElementById('levelNumber');
-const progressNumberElement = document.getElementById('progressNumber');
-const gameElement = document.getElementById('game');
-const levelSelectElement = document.getElementById('levelSelect');
-const levelListElement = document.getElementById('levelList');
-const levelSelectButton = document.getElementById('levelSelectButton');
-const freeModeButton = document.getElementById('freeModeButton');
-const backToGameButton = document.getElementById('backToGameButton');
-const freeModeElement = document.getElementById('freeMode');
-const wordElement = document.getElementById('word');
-const wordInput = document.getElementById('wordInput');
-const feedbackFreeModeElement = document.getElementById('feedbackFreeMode');
-const evaluationElement = document.getElementById('evaluation');
-const evaluationResultElement = document.getElementById('evaluationResult');
-const backToGameFromFreeModeButton = document.getElementById('backToGameFromFreeModeButton');
-const backToGameFromEvaluationButton = document.getElementById('backToGameFromEvaluationButton');
-
-// Función para iniciar el juego
-function startGame() {
-    gameActive = true;
-    updateLevel();
-    initializeLetterPressCount();
-    nextLetter();
+// Función para cargar las letras del nivel actual y desordenarlas
+function loadLevel(level) {
+    letterQueue = [];
+    for (let i = 0; i < 4; i++) {
+        letterQueue = letterQueue.concat(levels[level]);
+    }
+    letterQueue = shuffle(letterQueue);
+    showNextLetter();
 }
 
-// Función para inicializar el contador de presiones de letras
-function initializeLetterPressCount() {
-    letterPressCount = {};
-    const levelLetters = levels[currentLevel];
-    levelLetters.split('').forEach(letter => {
-        letterPressCount[letter] = 0;
-    });
-}
-
-// Función para cambiar de letra
-function nextLetter() {
-    if (!gameActive) return;
-
-    const levelLetters = levels[currentLevel];
-    const randomIndex = Math.floor(Math.random() * levelLetters.length);
-    currentLetter = levelLetters[randomIndex];
-    letterElement.textContent = currentLetter;
+// Función para mostrar la siguiente letra en la cola
+function showNextLetter() {
+    if (letterQueue.length === 0) {
+        document.getElementById('feedback').textContent = '¡Nivel Completado!';
+        playSuccessSound(); // Reproduce el sonido de éxito
+        speakLetter('Nivel finalizado. Preparándose para el siguiente nivel.');
+        
+        setTimeout(() => {
+            currentLevel++;
+            if (currentLevel > Object.keys(levels).length) {
+                currentLevel = 1; // Reiniciar al nivel 1 si no hay más niveles
+            }
+            document.getElementById('level').textContent = 'Nivel ' + currentLevel;
+            loadLevel(currentLevel); // Cargar las letras del nuevo nivel
+        }, 3000); // Espera 3 segundos antes de cambiar al siguiente nivel
+        return;
+    }
+    currentLetter = letterQueue.shift(); // Toma la primera letra
+    document.getElementById('letter').textContent = currentLetter;
     speakLetter(currentLetter);
-
-    clearInterval(intervalID);
-    intervalID = setInterval(() => speakLetter(currentLetter), 3000);
 }
 
-// Función para pronunciar la letra
+// Función para desordenar el array de letras
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+// Función para pronunciar la letra usando la API del navegador
 function speakLetter(letter) {
-    const msg = new SpeechSynthesisUtterance(letter);
-    msg.lang = 'es-ES';
+    let pronunciation;
+
+    // Mapear caracteres especiales a sus pronunciaciones
+    switch (letter) {
+        case ',':
+            pronunciation = 'coma';
+            break;
+        case '.':
+            pronunciation = 'punto';
+            break;
+        default:
+            pronunciation = letter;
+            break;
+    }
+
+    const msg = new SpeechSynthesisUtterance(pronunciation);
+    msg.lang = 'es-ES'; // Configura el idioma en español
     window.speechSynthesis.speak(msg);
 }
 
-// Función para manejar el progreso del jugador
-function handleKeyPress(event) {
-    if (!gameActive) return;
-
-    const pressedKey = event.key.toUpperCase();
-    if (pressedKey === currentLetter) {
-        letterPressCount[currentLetter] = (letterPressCount[currentLetter] || 0) + 1;
-        letterCount++;
-        progressNumberElement.textContent = `${letterCount}/10`;
-        if (letterPressCount[currentLetter] >= requiredPresses) {
-            if (letterCount >= 10) {
-                letterCount = 0;
-                progressNumberElement.textContent = `${letterCount}/10`;
-                levelUp();
-            } else {
-                nextLetter();
-            }
-        } else {
-            nextLetter();
-        }
-        clearTimeout(errorTimeout);
-        feedbackElement.textContent = ''; // Limpiar mensaje de error
-    } else {
-        feedbackElement.textContent = '¡Error!';
-        playErrorSound();
-        clearTimeout(errorTimeout);
-        errorTimeout = setTimeout(() => feedbackElement.textContent = '', 2000); // Limpiar error después de 2 segundos
-    }
-}
-
-// Función para reproducir un sonido de error
+// Función para reproducir el sonido de error
 function playErrorSound() {
-    const errorSound = new Audio('https://www.soundjay.com/button/beep-07.wav');
-    errorSound.play().catch(err => console.error('Error al reproducir sonido: ', err));
+    const errorSound = new Audio('https://www.soundjay.com/buttons/sounds/beep-03.mp3');
+    errorSound.play();
 }
 
-// Función para actualizar el nivel
-function updateLevel() {
-    levelNumberElement.textContent = currentLevel + 1;
+// Función para reproducir el sonido de éxito
+function playSuccessSound() {
+    const successSound = new Audio('https://www.soundjay.com/buttons/sounds/button-46.mp3');
+    successSound.play();
 }
 
-// Función para avanzar de nivel
-function levelUp() {
-    if (currentLevel < levels.length - 1) {
-        currentLevel++;
-        initializeLetterPressCount();
-        updateLevel();
-        nextLetter();
-    } else {
-        endGame();
+// Función para cambiar de nivel
+function changeLevel() {
+    currentLevel++;
+    if (currentLevel > Object.keys(levels).length) {
+        currentLevel = 1; // Reiniciar al nivel 1 si no hay más niveles
     }
+    document.getElementById('level').textContent = 'Nivel ' + currentLevel;
+    loadLevel(currentLevel); // Cargar las letras del nuevo nivel
 }
 
-// Función para terminar el juego
-function endGame() {
-    gameActive = false;
-    clearInterval(intervalID);
-    const endTime = new Date().getTime();
-    const elapsedTime = (endTime - startTime) / 1000;
-    evaluationResultElement.textContent = `Tiempo total: ${elapsedTime} segundos. ¡Has completado todos los niveles!`;
-    evaluationElement.classList.remove('hidden');
-    gameElement.classList.add('hidden');
-}
+// Evento para manejar el teclado
+document.addEventListener('keydown', function(event) {
+    const pressedKey = event.key.toUpperCase();
 
-// Función para mostrar la selección de niveles
-function showLevelSelect() {
-    levelListElement.innerHTML = '';
-    levels.forEach((level, index) => {
-        const listItem = document.createElement('li');
-        listItem.textContent = `Nivel ${index + 1}: ${level}`;
-        listItem.addEventListener('click', () => {
-            currentLevel = index;
-            initializeLetterPressCount();
-            updateLevel();
-            nextLetter();
-            levelSelectElement.classList.add('hidden');
-            gameElement.classList.remove('hidden');
-        });
-        levelListElement.appendChild(listItem);
-    });
-    gameElement.classList.add('hidden');
-    levelSelectElement.classList.remove('hidden');
-}
-
-// Función para mostrar el modo libre
-function showFreeMode() {
-    const randomIndex = Math.floor(Math.random() * words.length);
-    currentWord = words[randomIndex];
-    wordElement.textContent = currentWord;
-    freeModeElement.classList.remove('hidden');
-    gameElement.classList.add('hidden');
-    startTime = new Date().getTime(); // Tiempo de inicio
-}
-
-// Función para manejar la entrada en el modo libre
-function handleWordInput() {
-    if (wordInput.value === currentWord) {
-        wordInput.value = '';
-        wordElement.textContent = '';
-        feedbackFreeModeElement.textContent = '¡Bien hecho!';
-        setTimeout(showFreeMode, 1000); // Mostrar otra palabra después de 1 segundo
-    } else {
-        feedbackFreeModeElement.textContent = '¡Error!';
+    // Si se presiona CTRL, repetir la lectura de la letra actual
+    if (event.ctrlKey) {
+        speakLetter(currentLetter);
+    } 
+    // Si se presiona la letra correcta
+    else if (pressedKey === currentLetter) {
+        document.getElementById('feedback').textContent = '¡Correcto!';
+        playSuccessSound(); // Reproduce el sonido de éxito
+        showNextLetter(); // Muestra una nueva letra
+    } 
+    // Si la letra es incorrecta
+    else {
+        document.getElementById('feedback').textContent = '¡Intenta de nuevo!';
+        playErrorSound(); // Reproduce un sonido de error
     }
-}
+});
 
-// Función para mostrar la evaluación final
-function showEvaluation() {
-    const endTime = new Date().getTime();
-    const elapsedTime = (endTime - startTime) / 1000;
-    evaluationResultElement.textContent = `Tiempo total: ${elapsedTime} segundos. ¡Has completado todos los niveles!`;
-    evaluationElement.classList.remove('hidden');
-    gameElement.classList.add('hidden');
-}
+// Inicia el juego con el nivel 1
+loadLevel(currentLevel);
 
-// Event Listeners
-document.addEventListener('keydown', handleKeyPress);
-levelSelectButton.addEventListener('click', showLevelSelect);
-freeModeButton.addEventListener('click', showFreeMode);
-backToGameButton.addEventListener('click', function() {
-    levelSelectElement.classList.add('hidden');
-    gameElement.classList.remove('hidden');
+
+
+// Accesibilidad: Aumentar el tamaño del texto
+document.getElementById('increaseTextSize').addEventListener('click', function() {
+    const letterElement = document.getElementById('letter');
+    let currentSize = parseFloat(window.getComputedStyle(letterElement, null).getPropertyValue('font-size'));
+    letterElement.style.fontSize = (currentSize + 5) + 'px';
 });
-backToGameFromFreeModeButton.addEventListener('click', function() {
-    freeModeElement.classList.add('hidden');
-    gameElement.classList.remove('hidden');
+
+// Cambiar contraste (fondo claro/oscuro)
+document.getElementById('toggleContrast').addEventListener('click', function() {
+    document.body.classList.toggle('dark-mode');
 });
-backToGameFromEvaluationButton.addEventListener('click', function() {
-    evaluationElement.classList.add('hidden');
-    gameElement.classList.remove('hidden');
-});
-wordInput.addEventListener('input', handleWordInput);
+
+// Inicializar el programa mostrando una letra
+randomLetter();
 
 // Iniciar el juego al cargar
 startGame();
