@@ -3,40 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Mecanografía</title>
+    <title>Curso de Mecanografía</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>Juego de Mecanografía</h1>
-        <div id="game">
-            <p id="instructions">Presiona la letra indicada:</p>
-            <div id="letter" class="letter"></div>
-            <div id="feedback" class="feedback"></div>
-            <p id="level">Nivel: <span id="levelNumber">1</span></p>
-            <p id="progress">Progreso: <span id="progressNumber">0/10</span></p>
-            <button id="levelSelectButton">Seleccionar Nivel</button>
-            <button id="freeModeButton">Modo Libre</button>
-        </div>
-        <div id="levelSelect" class="hidden">
-            <h2>Selecciona un Nivel</h2>
-            <ul id="levelList"></ul>
-            <button id="backToGameButton">Volver al Juego</button>
-        </div>
-        <div id="freeMode" class="hidden">
-            <h2>Modo Libre</h2>
-            <p>Escribe las siguientes palabras:</p>
-            <div id="word"></div>
-            <input type="text" id="wordInput" placeholder="Escribe aquí...">
-            <div id="feedbackFreeMode" class="feedback"></div>
-            <button id="backToGameFromFreeModeButton">Volver al Juego</button>
-        </div>
-        <div id="evaluation" class="hidden">
-            <h2>Evaluación Final</h2>
-            <p id="evaluationResult"></p>
-            <button id="backToGameFromEvaluationButton">Volver al Juego</button>
+        <h1>Curso de Mecanografía Accesible</h1>
+        <div id="letter" class="letter"></div>
+        <div id="feedback" class="feedback"></div>
+
+        <button onclick="changeLevel()">Siguiente Nivel</button>
+        <div id="level">Nivel 1</div>
+
+        <div>
+            <button id="increaseTextSize">Aumentar Tamaño Texto</button>
+            <button id="toggleContrast">Cambiar Contraste</button>
         </div>
     </div>
     <script src="script.js"></script>
 </body>
 </html>
+
